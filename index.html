@@ -15,8 +15,10 @@
             height: 100vh;
             overflow: hidden;
             font-family: Arial, Helvetica, sans-serif;
+            cursor: pointer; /* shows hand cursor so user knows they can click */
         }
-        /* Loader styling - spinning circle */
+
+        /* Loader */
         #loader {
             position: fixed;
             inset: 0;
@@ -25,45 +27,53 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            color: white;
+            color: #0f0;
             z-index: 999;
         }
+
         .spinner {
-            width: 80px;
-            height: 80px;
-            border: 8px solid white;
-            border-top: 8px solid #0f0;
+            width: 90px;
+            height: 90px;
+            border: 10px solid #222;
+            border-top: 10px solid #0f0;
             border-radius: 50%;
-            animation: spin 1.2s linear infinite;
+            animation: spin 1.1s linear infinite;
         }
+
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
         #loader p {
-            margin-top: 30px;
-            font-size: 1.8rem;
+            margin-top: 35px;
+            font-size: 2.2rem;
             font-weight: bold;
+            letter-spacing: 3px;
+            color: #0f0;
+            text-shadow: 0 0 12px rgba(0,255,0,0.7);
         }
-        /* Content after loading */
+
+        /* Surprise content */
         #content {
             display: none;
             height: 100vh;
             background: #000;
         }
+
         #content img {
             width: 100%;
             height: 100%;
             object-fit: contain;
         }
-        /* Hide audio player */
+
+        /* Hide audio controls */
         #surpriseAudio {
             display: none;
         }
     </style>
 </head>
 <body>
-
     <div id="loader">
         <div class="spinner"></div>
         <p>LOADING...</p>
@@ -73,40 +83,61 @@
         <img src="pay.jpg" alt="surprise">
     </div>
 
-    <!-- Audio tag - preload kiya taaki ready rahe -->
-    <audio id="surpriseAudio" preload="auto">
+    <audio id="surpriseAudio" preload="auto" muted>
         <source src="pay.mp3" type="audio/mpeg">
         Your browser does not support the audio element.
     </audio>
 
     <script>
-        const loader = document.getElementById("loader");
-        const content = document.getElementById("content");
-        const audio = document.getElementById("surpriseAudio");
+        const loader   = document.getElementById("loader");
+        const content  = document.getElementById("content");
+        const audio    = document.getElementById("surpriseAudio");
 
-        // 10 second baad loading hide + image + audio play
+        let hasInteracted = false;
+
+        // Function to try playing sound (called on timeout + on click)
+        function tryPlaySound() {
+            audio.muted = false;
+            audio.volume = 1.0;
+
+            const playPromise = audio.play();
+            if (playPromise !== undefined) {
+                playPromise
+                    .then(() => {
+                        console.log("Sound started 🔥");
+                    })
+                    .catch(err => {
+                        console.log("Play failed:", err);
+                    });
+            }
+        }
+
+        // 10 seconds → show image + prepare sound
         setTimeout(() => {
             loader.style.display = "none";
             content.style.display = "block";
 
-            // Audio play try karo (promise use karke error handle kar sakte ho)
-            const playPromise = audio.play();
+            // Try to play (will most likely be blocked → waiting for click now)
+            tryPlaySound();
 
-            if (playPromise !== undefined) {
-                playPromise
-                    .then(() => {
-                        console.log("Audio shuru ho gaya! 🔥");
-                    })
-                    .catch(error => {
-                        console.log("Autoplay block ho gaya: ", error);
-                        // Agar block ho to user ko bol sakte ho click karne ko (niche optional code)
-                        // alert("Sound bajane ke liye page pe click kar bhai!");
-                    });
+            // Add one-time click listener to unmute & play on first interaction
+            if (!hasInteracted) {
+                const handleFirstClick = () => {
+                    hasInteracted = true;
+                    tryPlaySound();
+                    document.body.removeEventListener('click', handleFirstClick);
+                    document.body.removeEventListener('touchstart', handleFirstClick);
+                };
+
+                document.body.addEventListener('click', handleFirstClick);
+                document.body.addEventListener('touchstart', handleFirstClick); // for mobile
             }
-        }, 10000);  // 10000 ms = 10 seconds
-    </script>
+        }, 10000);
 
+        // Optional: if user clicks very early (before 10s), we can remember it
+        document.body.addEventListener('click', () => {
+            hasInteracted = true;
+        }, { once: true });
+    </script>
 </body>
 </html>
-
-
